@@ -1,0 +1,58 @@
+# Read Me  this code is txt files creator .  Add the main python code ( Virtual _ Fisheye_PTZ_CAM.PY ) 
+
+
+
+
+
+if beta==-180:    
+            np.savetxt("BetaX-180.txt",self._mapX,delimiter=",")
+            np.savetxt("Betay-180.txt",self._mapY,delimiter=",")
+        
+        if beta==-150:    
+            np.savetxt("BetaX-150.txt",self._mapX,delimiter=",")
+            np.savetxt("Betay-150.txt",self._mapY,delimiter=",")
+        
+        if beta==-120:    
+            np.savetxt("BetaX-120.txt",self._mapX,delimiter=",")
+            np.savetxt("Betay-120.txt",self._mapY,delimiter=",")
+        
+        if beta==-90:    
+            np.savetxt("BetaX-90.txt",self._mapX,delimiter=",")
+            np.savetxt("Betay-90.txt",self._mapY,delimiter=",")
+        
+        if beta==-60:    
+            np.savetxt("BetaX-60.txt",self._mapX,delimiter=",")
+            np.savetxt("Betay-60.txt",self._mapY,delimiter=",")
+        
+        if beta==-30:    
+            np.savetxt("BetaX-30.txt",self._mapX,delimiter=",")
+            np.savetxt("Betay-30.txt",self._mapY,delimiter=",")
+        
+        if beta==0:    
+            np.savetxt("BetaX-0.txt",self._mapX,delimiter=",")
+            np.savetxt("Betay-0.txt",self._mapY,delimiter=",")
+
+
+        if beta==180:    
+            np.savetxt("BetaX180.txt",self._mapX,delimiter=",")
+            np.savetxt("Betay180.txt",self._mapY,delimiter=",")
+        
+        if beta==150:    
+            np.savetxt("BetaX150.txt",self._mapX,delimiter=",")
+            np.savetxt("Betay150.txt",self._mapY,delimiter=",")
+        
+        if beta==120:    
+            np.savetxt("BetaX120.txt",self._mapX,delimiter=",")
+            np.savetxt("Betay120.txt",self._mapY,delimiter=",")
+        
+        if beta==90:    
+            np.savetxt("BetaX90.txt",self._mapX,delimiter=",")
+            np.savetxt("Betay90.txt",self._mapY,delimiter=",")
+        
+        if beta==60:    
+            np.savetxt("BetaX60.txt",self._mapX,delimiter=",")
+            np.savetxt("Betay60.txt",self._mapY,delimiter=",")
+        
+        if beta==30:    
+            np.savetxt("BetaX30.txt",self._mapX,delimiter=",")
+            np.savetxt("Betay30.txt",self._mapY,delimiter=",")
