@@ -1,0 +1,201 @@
+# Sanal PTZ Acrop
+
+
+# YAPILACAKLAR.
+
+
+#  RE_BUİLD Fonksiyonunu overloading işlemi altına al ve değerlerden örneğin beta geldiyse sadece beta işlemiyapılsın diğer parametreler zaten sabit olduğu için 5 hesaplama yerine tek hesaplamada işlemden kurtulmuş oluruz.
+
+#  RE_BUİLD İşlemi sonrası Tuş soruglarının içine re build fonksiyonunu ekle while her çalıştığında haritayı tekrar güncellemesin sadece sağ sola kaymaş işleminden sonra .
+
+
+## Click metodları sonrası ekrandaki donma tercih sebebi şuan kamera çıkış parametresi 1080 * 1920   bu değer 720 *720 ye düşürülür ise gecikme süresi 4 e bölünür. Pixel oranımız ne kadar azalırsa click metodlarımızın da gecikmesi aynı oranda düşer.
+
+# Kalite ve hız arasındaki seçim sonrası Manuel olarak giriş değelerini değiştirebilirz. 
+
+
+
+import numpy as np
+import cv2
+import glob
+cap=cv2.VideoCapture("rtsp://192.168.1.10:554/user=admin&password=&channel=1&stream=0.sdp")
+
+# Görüntü Testi için Yapılacak adımlar 
+# 1.Adım 
+#      Rtsp yayın üzerinden RTSP_Foto_Cek.py Çalıştırılıp fisheye fotoğraf kayıt edilcek 
+#      Kaydedilen görüntü glop glop Kullanılarak Realtime verilmek yerine tek görüntü üzerinden Sanal Ptz kontrol edilcek.
+#      Gerekli kütüphaneler import edilmiştir.
+#      Fotoğraf üzerine yapılan işlem başarılı ise Kamera ile uyumludur. 
+
+help_Text = '''
+  'r' ve 'f' Yakınlaştırma uzaklaştirma . 
+  'g' ve 't' rotasyon 
+  'h' ve 'y'  Sag - Sol Kaydirma islemi
+  'j' ve 'u' rotasyon
+  's' Screeen Shot almak icin 
+
+    '''
+
+
+    
+#images = glob.glob('C:/Users/ASUS/Desktop/fisheye_window-master/fisheye_window-master/cpp/*.png')       # Çekilen fotoğrafı koda yüklemek .
+
+class FishEyeWindow(object):
+  
+    
+    def __init__(self,srcWidth,srcHeight):
+        # Boyut parametreleri
+        
+        self._srcW = srcWidth
+        self._srcH = srcHeight             # Görüntü boyutu 
+        self._destW = 290
+        self._destH = 850                     # pencere size ayarları 
+        self._al = 0
+        self._be = 0
+        self._th = 0
+        self._R  = 960
+        self._zoom = 1
+        # Map 
+        self._mapX = np.zeros((self._destH, self._destW), np.float32)
+        self._mapY = np.zeros((self._destH, self._destW), np.float32)
+    def buildMap(self, alpha=None, beta=None, theta=None, R=None, zoom=None):
+        # Data atamaları .
+        self._al = (alpha, self._al)[alpha == None]
+        self._be = (beta, self._be)[beta == None]
+        self._th = (theta, self._th)[theta == None]
+        self._R = (R, self._R)[R == None]
+        self._zoom = (zoom, self._zoom)[zoom == None]
+        # Fisheye map ayarları .
+        al = self._al / 180.0
+        be = self._be / 180.0
+        th = self._th / 180.0
+        A = np.cos(th) * np.cos(al) - np.sin(th) * np.sin(al) * np.cos(be)
+        B = np.sin(th) * np.cos(al) + np.cos(th) * np.sin(al) * np.cos(be)
+        C = np.cos(th) * np.sin(al) + np.sin(th) * np.cos(al) * np.cos(be)
+        D = np.sin(th) * np.sin(al) - np.cos(th) * np.cos(al) * np.cos(be)
+        mR = self._zoom * self._R
+        mR2 = mR * mR
+        mRsinBesinAl = mR * np.sin(be) * np.sin(al)
+        mRsinBecosAl = mR * np.sin(be) * np.cos(al)
+        centerV = int(self._destH / 2.0)
+        centerU = int(self._destW / 2.0)
+        centerY = int(self._srcH / 2.0)
+        centerX = int(self._srcW / 2.0)
+        # harita_Upgrade
+        # Yukarıdaki parametreler ile görüntü haritamızı güncelliyoruz.
+        
+        for absV in range(0, int(self._destH)):
+            v = absV - centerV
+            vv = v * v
+            for absU in range(0, int(self._destW)):
+                u = absU - centerU
+                uu = u * u
+                upperX = self._R * (u * A - v * B + mRsinBesinAl)
+                lowerX = np.sqrt(uu + vv + mR2)
+                upperY = self._R * (u * C - v * D - mRsinBecosAl)
+                lowerY = lowerX
+                x = upperX / lowerX + centerX
+                y = upperY / lowerY + centerY
+                _v = (v + centerV, v)[centerV <= v]
+                _u = (u + centerU, u)[centerU <= u]
+                self._mapX.itemset((_v, _u), x)
+                self._mapY.itemset((_v, _u), y)
+    
+
+
+    
+
+    def getImage(self, img):
+
+
+        output = cv2.remap(img, self._mapX, self._mapY, cv2.INTER_LINEAR) 
+     
+        return output
+
+def main():
+    
+    s,src_img=cap.read()
+    src_size=src_img.shape[:2]
+
+    print("Goruntuleme Oranı :",src_size)
+    framespersecond= int(cap.get(cv2.CAP_PROP_FPS))   # Kameramızın Fps değerini alıyoruz ve alt satırda program çalışmadan önce print ediyoruz.
+
+    print("FPS :{0}".format(framespersecond))
+
+
+
+    fe = FishEyeWindow(src_size[1],src_size[0])     
+
+    alpha = -270
+    beta = 0
+    theta = 270
+    zoom = 0.65
+
+    if(not(cap.open)):
+        print("ACROP'Tan goruntu alinamiyor !!")
+    fe.buildMap(alpha=alpha, beta=beta, theta=theta, zoom=zoom)     ## Gecikmeyi sağlayan arkadaş bu 
+
+    while cap.open:          ## Görüntümüz varken döngü içine girecek.
+        
+        s, src_img= cap.read()
+        src_size = src_img.shape[:2]
+        
+        result_img = fe.getImage(src_img)
+        cv2.imshow('ACROP_Panel', result_img)
+
+
+
+        #result_img=cv2.resize(result_img,(720,1080))      Size layıp göndermek veya bir nesnede oynatmak istersek
+
+        key = cv2.waitKey(1)
+
+        if key == 27:
+            break
+        elif ord('r') == key:
+           zoom -= 0.1
+           fe.buildMap(alpha=alpha, beta=beta, theta=theta, zoom=zoom)     ## Gecikmeyi sağlayan arkadaş bu 
+
+        elif ord('f') == key:
+            zoom += 0.1
+            fe.buildMap(alpha=alpha, beta=beta, theta=theta, zoom=zoom)     ## Gecikmeyi sağlayan arkadaş bu 
+
+        elif ord('g') == key:
+            alpha += 90
+            fe.buildMap(alpha=alpha, beta=beta, theta=theta, zoom=zoom)     ## Gecikmeyi sağlayan arkadaş bu 
+
+        elif ord('t') == key:
+            alpha -= 90
+            fe.buildMap(alpha=alpha, beta=beta, theta=theta, zoom=zoom)     ## Gecikmeyi sağlayan arkadaş bu 
+
+        elif ord('h') == key and beta <180:
+            beta += 20
+            fe.buildMap(alpha=alpha, beta=beta, theta=theta, zoom=zoom)     ## Gecikmeyi sağlayan arkadaş bu 
+
+        elif ord('y') == key and beta >-180:
+            
+            beta -= 20
+            fe.buildMap(alpha=alpha, beta=beta, theta=theta, zoom=zoom)     ## Gecikmeyi sağlayan arkadaş bu 
+
+        elif ord('j') == key:
+            theta += 90
+            fe.buildMap(alpha=alpha, beta=beta, theta=theta, zoom=zoom)     ## Gecikmeyi sağlayan arkadaş bu 
+
+        elif ord('u') == key:
+            theta -= 90
+            fe.buildMap(alpha=alpha, beta=beta, theta=theta, zoom=zoom)     ## Gecikmeyi sağlayan arkadaş bu 
+
+        elif ord('s') == key:
+            print("Ekran Goruntusu alindi.")
+            cv2.imwrite('./Foto_Kayıt_Elektroland_ACROP.png', result_img)
+
+
+    
+
+    cap.release()    
+    cv2.destroyAllWindows()
+    
+
+if __name__ == '__main__':
+
+        print (help_Text)  #terminale hangi button clickleri  ne yapar bunu yazdıralım . 
+        main()   
